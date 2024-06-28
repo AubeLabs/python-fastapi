@@ -1,10 +1,10 @@
-/venv/
-/.idea/
-/__pycache__/
+# .dockerignore
+__pycache__
 *.pyc
 *.pyo
 *.pyd
 *.db
 .DS_Store
 .vscode/
+.idea/
 *.tar
