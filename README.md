@@ -1,5 +1,9 @@
 
 # 로컬 작업
+
+## 로컬 서버 시작
+uvicorn main:app --reload
+
 ## Docker 이미지 빌드
 docker build -t fastapi-app:latest .
 

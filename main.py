@@ -1,10 +1,14 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-import requests
+from fastapi import FastAPI, Path, Query, HTTPException # type: ignore
+from fastapi.middleware.cors import CORSMiddleware # type: ignore
+import requests # type: ignore
 import os
 from typing import Any
 
-app = FastAPI()
+app = FastAPI(
+    title="초등학교 시간표 및 급식정보 Rest API",
+    description="초등학교 시간표 및 급식정보를 제공하는 Rest API 입니다.",
+    version="1.0.0",
+)
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
@@ -24,11 +28,17 @@ NEIS_API_URL = "https://open.neis.go.kr/hub/elsTimetable?KEY={api_key}&Type=json
 NEIS_ELS_TIMETABLE_API_URL = "https://open.neis.go.kr/hub/elsTimetable?KEY={api_key}&Type=json&pIndex=1&pSize=100"
 NEIS_ELS_MEALSERVICE_API_URL = "https://open.neis.go.kr/hub/mealServiceDietInfo?KEY={api_key}&Type=json&pIndex=1&pSize=100"
 
-@app.get("/")
+@app.get(
+    "/", 
+    summary="Root Endpoint", 
+    description="This is the root endpoint."
+    )
 def read_root():
     return {"Rest API": "Aube Labs."}
 
-@app.get("/api/bike-stations")
+@app.get(
+    "/api/bike-stations"
+    )
 def get_bike_stations() -> Any:
     """
     서울시 공공 자전거 대여소 정보를 가져와 리턴하는 API 엔드포인트.
@@ -41,8 +51,16 @@ def get_bike_stations() -> Any:
     else:
         return {"error": "Failed to retrieve data", "status_code": response.status_code}
 
-@app.get("/api/bike-stations/{station_id}")
-def get_bike_station(station_id: str):
+@app.get(
+    "/api/bike-stations/{station_id}",
+    summary="station_id를 경로 변수로 받아서 해당 대여소 정보를 반환",
+    description=
+    """
+    서울시 공공데이터 API에서 자전거 대여소 정보를 가져옵니다.
+    station_id를 경로 변수로 받아서 해당 대여소 정보를 반환합니다.
+    """
+    )
+def get_bike_station(station_id: str = Path(..., description="자전거 대여소 ID")):
     """
     서울시 공공데이터 API에서 자전거 대여소 정보를 가져옵니다.
     station_id를 경로 변수로 받아서 해당 대여소 정보를 반환합니다.
@@ -63,10 +81,14 @@ def get_bike_station(station_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/els-timetables")
+@app.get(
+    "/api/els-timetables",
+    summary="샘플: 초등학교시간표 정보를 가져와 리턴하는 API 엔드포인트.",
+    )
 def get_els_timetables() -> Any:
     """
-    초등학교시간표 정보를 가져와 리턴하는 API 엔드포인트.
+    샘플: 초등학교시간표 정보를 가져와 리턴하는 API 엔드포인트.
+    
     ATPT_OFCDC_SC_CODE=B10&SD_SCHUL_CODE=7021105&AY=2024&GRADE=2&CLASS_NM=2&TI_FROM_YMD=20240614&TI_TO_YMD=20240614
     """
     response = requests.get(NEIS_API_URL.format(api_key=NEIS_API_KEY))
@@ -77,11 +99,33 @@ def get_els_timetables() -> Any:
     else:
         return {"error": "Failed to retrieve data", "status_code": response.status_code}
 
-@app.get("/api/els-timetable/{atpt_ofcdc_sc_code}/{sd_schul_code}/{ay}/{grade}/{class_nm}/{ti_ymd}")
-def get_els_timetable(atpt_ofcdc_sc_code: str, sd_schul_code: str, ay: str, grade: str, class_nm: str, ti_ymd: str):
+@app.get(
+    "/api/els-timetable/{atpt_ofcdc_sc_code}/{sd_schul_code}/{ay}/{grade}/{class_nm}/{ti_ymd}",
+    summary="초등학교시간표 정보를 가져와 리턴하는 API 엔드포인트.",
+    # description="""
+    # 초등학교시간표 정보를 가져와 리턴하는 API 엔드포인트. <br>
+    # Get the timetable information for an elementary school class on a specific date.
+    # """,
+    )
+def get_els_timetable(
+    atpt_ofcdc_sc_code: str = Path(..., description="Office of Education Code"),
+    sd_schul_code: str = Path(..., description="School Code"),
+    ay: str = Path(..., description="Academic Year"),
+    grade: str = Path(..., description="Grade"),
+    class_nm: str = Path(..., description="Class Number"),
+    ti_ymd: str = Path(..., description="Date (YYYYMMDD)")
+):
+    # docstring : 데코레이터의 description 매개변수가 설정되지 않은 경우 사용된다.
     """
-    초등학교시간표 정보를 가져와 리턴하는 API 엔드포인트.
-    ATPT_OFCDC_SC_CODE=B10&SD_SCHUL_CODE=7021105&AY=2024&GRADE=2&CLASS_NM=2&TI_FROM_YMD=20240614&TI_TO_YMD=20240614
+    ### 초등학교시간표 정보를 가져와 리턴하는 API 엔드포인트.
+    Get the timetable information for an elementary school class on a specific date.
+    
+    - **atpt_ofcdc_sc_code**: Office of Education Code
+    - **sd_schul_code**: School Code
+    - **ay**: Academic Year
+    - **grade**: Grade
+    - **class_nm**: Class Number
+    - **ti_ymd**: Date in YYYYMMDD format
     """
     try:
         response = requests.get(
@@ -107,10 +151,25 @@ def get_els_timetable(atpt_ofcdc_sc_code: str, sd_schul_code: str, ay: str, grad
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/els-mealservice/{atpt_ofcdc_sc_code}/{sd_schul_code}/{meal_sc_code}/{ti_ymd}")
-def get_els_mealservice(atpt_ofcdc_sc_code: str, sd_schul_code: str, meal_sc_code: str, ti_ymd: str):
+@app.get(
+    "/api/els-mealservice/{atpt_ofcdc_sc_code}/{sd_schul_code}/{meal_sc_code}/{ti_ymd}",
+    summary="급식식단정보를 가져와 리턴하는 API 엔드포인트.",
+    )
+def get_els_mealservice(
+    atpt_ofcdc_sc_code: str = Path(..., description="Office of Education Code", example="B10"),
+    sd_schul_code: str = Path(..., description="School Code", example="7021105"),
+    meal_sc_code: str = Path(..., description="Meal Service Code", example="2"),
+    ti_ymd: str = Path(..., description="Date (YYYYMMDD)", example="20240624")
+):
+    # docstring : 데코레이터의 description 매개변수가 설정되지 않은 경우 사용된다.
     """
-    급식식단정보를 가져와 리턴하는 API 엔드포인트.
+    ### 급식식단정보를 가져와 리턴하는 API 엔드포인트.
+    Get the mealservice information for a specific date.
+
+    - **atpt_ofcdc_sc_code**: Office of Education Code
+    - **sd_schul_code**: School Code
+    - **meal_sc_code**: Meal Service Code
+    - **ti_ymd**: Date in YYYYMMDD format
     """
     try:
         response = requests.get(
@@ -128,7 +187,7 @@ def get_els_mealservice(atpt_ofcdc_sc_code: str, sd_schul_code: str, meal_sc_cod
         data = response.json()
         # API의 실제 응답 구조에 따라 data 가공 필요
         if not data:
-            raise HTTPException(status_code=404, detail="Timetable not found")
+            raise HTTPException(status_code=404, detail="Mealservice not found")
         return data
     except requests.HTTPError as exc:
         raise HTTPException(status_code=response.status_code, detail=str(exc))
